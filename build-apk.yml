@@ -1,0 +1,47 @@
+name: Build APK
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - name: Siapkan proyek Android
+        run: |
+          mkdir -p www
+          cp index.html manifest.json icon.svg icon-192.png icon-512.png logo.svg www/
+          npm install
+          npx cap add android
+          npx cap sync android
+      - name: Pasang ikon
+        continue-on-error: true
+        run: |
+          rm -rf android/app/src/main/res/mipmap-anydpi-v26
+          for d in mdpi:48 hdpi:72 xhdpi:96 xxhdpi:144 xxxhdpi:192; do
+            n=${d%%:*}; s=${d##*:}
+            for f in ic_launcher ic_launcher_round ic_launcher_foreground; do
+              convert icon-512.png -resize ${s}x${s} android/app/src/main/res/mipmap-$n/$f.png
+            done
+          done
+      - name: Buat APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+      - name: Terbitkan APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk Jee-Treatment.apk
+          gh release create "v${{ github.run_number }}" Jee-Treatment.apk --title "Jee Treatment v${{ github.run_number }}" --notes "File aplikasi Android (APK)."

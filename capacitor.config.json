@@ -1,0 +1,8 @@
+{
+  "appId": "com.jee.treatment",
+  "appName": "Jee Treatment",
+  "webDir": "www",
+  "android": {
+    "backgroundColor": "#ffe9f4"
+  }
+}
